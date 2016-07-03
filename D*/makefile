@@ -1,7 +1,7 @@
 NOME_EXECUTAVEL = simulador
 CPP_FILES := $(wildcard src/*.cpp)
 OBJ_FILES := $(addprefix obj/,$(notdir $(CPP_FILES:.cpp=.o)))
-CXXFLAGS = -O2 -g -Wall
+CXXFLAGS = -O2 -g -Wall -std=c++0x
 SOURCE = src
 BUILD = build
 LIBS = -I includes/

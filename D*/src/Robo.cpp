@@ -3,9 +3,17 @@
 #include "Mapa.hpp"
 #include "Estado.hpp"
 #include "Robo.hpp"
+#include "statemachine.hpp"
+#include "robotbase.hpp"
 
-Robo::Robo(string nome_robo, Mapa & mapa_inicial,int pos_x_inicial ,int pos_y_inicial, string simbolo):
-	Objeto(nome_robo, simbolo, pos_x_inicial, pos_y_inicial),meu_mapa(mapa_inicial){
+Robo::Robo(	string nome_robo, 
+			Mapa & mapa_inicial,
+			int pos_x_inicial,
+			int pos_y_inicial,
+			State<Robo> *estado_inicial, 
+			string simbolo):
+	Objeto(nome_robo, simbolo, pos_x_inicial, pos_y_inicial),meu_mapa(mapa_inicial),
+	RobotBase<Robo>(this, estado_inicial){
 	estado_atual = Estado(pos_x_inicial, pos_y_inicial);
 	meu_mapa.inserir_objeto(this);
 	definir_velocidade(0,0);

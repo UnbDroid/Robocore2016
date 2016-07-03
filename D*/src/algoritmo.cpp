@@ -27,17 +27,17 @@ int main(int argc, char const *argv[])
 {
 	Mapa mapa_robo(10,10);
 	mapa_robo.inserir_retangulo(1,2,1,3);
-	Robo bruce("Bruce", mapa_robo, 0,0);
+	//Robo bruce("Bruce", mapa_robo, 0,0);
 	mapa_robo.atualizar_mapa();
 	cout << mapa_robo << endl;
-	bruce.definir_velocidade(1,0);
+	//bruce.definir_velocidade(1,0);
 	for (int i = 0; i < 4; ++i){
 		system("clear");
 		mapa_robo.atualizar_mapa();
 		cout << mapa_robo << endl;
 		sleep(1);
 	}
-	bruce.definir_velocidade(0,1);
+	//bruce.definir_velocidade(0,1);
 	for (int i = 0; i < 4; ++i){
 		system("clear");
 		mapa_robo.atualizar_mapa();
