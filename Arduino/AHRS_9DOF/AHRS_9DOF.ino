@@ -71,26 +71,13 @@ const float LIMITE270 = LIMITEREAL90 + 180;
 /****************************************************************/
 #include <Wire.h>
 
-// Includes do DRIVE
-/****************************************************************/
-#define IN1_E 4 
-#define IN2_E 5
-#define velEsquerda 3
-
-#define IN1_D 6
-#define IN2_D 7
-#define velDireita 2
-
-//#define IN4 3
-#define Frente 'f'    //Frente
-#define Tras 't'    //Parar
-#define Esquerda 'e'
-#define Direita 'd'
-#define Parar 'p'
-
 // Includes do Controle
 /****************************************************************/
 #include <VirtualWire.h>
+
+// Includes do US
+/****************************************************************/
+#include <Ultrasonic.h>
 
 // Definicoes da IMU
 /************************************************************************************************************************************************************************************************/
@@ -199,13 +186,44 @@ const float LIMITE270 = LIMITEREAL90 + 180;
 
 // Definicoes da GPS
 /************************************************************************************************************************************************************************************************/
-#define GPSBaud 9600
-
+#define GPSBaud 4800
 
 // Definicoes do Controle
 /************************************************************************************************************************************************************************************************/
-#define PINO_CONTROLE 48
+#define PINO_CONTROLE 46
 
+// Definicoes do DRIVE
+/************************************************************************************************************************************************************************************************/
+#define IN1_E 4 
+#define IN2_E 5
+#define velEsquerda 3
+
+#define IN1_D 6
+#define IN2_D 7
+#define velDireita 2
+
+//#define IN4 3
+#define Frente 'f'    //Frente
+#define Tras 't'    //Parar
+#define Esquerda 'e'
+#define Direita 'd'
+#define Parar 'p'
+
+
+// Definicoes do US
+/************************************************************************************************************************************************************************************************/
+#define ECHO_PIN1    53
+#define TRIGGER_PIN1 51
+#define ECHO_PIN2    49
+#define TRIGGER_PIN2 47
+#define ECHO_PIN3    45
+#define TRIGGER_PIN3 43
+#define ECHO_PIN4    41
+#define TRIGGER_PIN4 39
+#define ECHO_PIN5    37
+#define TRIGGER_PIN5 35
+#define ECHO_PIN6    33
+#define TRIGGER_PIN6 31
 
 // Variáveis da IMU
 /************************************************************************************************************************************************************************************************/
@@ -266,15 +284,15 @@ float angulo_normalizado;
 double lat,lng;
 float speed;
 boolean C1 = false, C2 = false, C3 = false;
-const double CONE1_LAT =  -15.765286;  // latitudes e longitudes dos cones
-const double CONE1_LNG =  -47.871986;
+const double CONE1_LAT =  -15.762801;  // latitudes e longitudes dos cones-15.765266,-47.871974  -15.762801,-47.859252
+const double CONE1_LNG =  -47.859252;
 const double CONE2_LAT =  -15.765286;
 const double CONE2_LNG =  -47.871986;
 const double CONE3_LAT =  -15.765286;
 const double CONE3_LNG =  -47.871986;
-const double INICIO_LAT = -15.3;      // latitude e longitude do ponto inicial
-const double INICIO_LNG = -47.3;
-const double DIRECAO_IMU_CONE1 = -90.0;   // angulo da IMU para os cones
+const double INICIO_LAT = -15.763020;      // latitude e longitude do ponto inicial -15.765407,-47.871929  -15.763020,-47.859096
+const double INICIO_LNG = -47.859096;
+const double DIRECAO_IMU_CONE1 = -120;   // angulo da IMU para os cone 
 const double DIRECAO_IMU_CONE2 = -90;
 const double DIRECAO_IMU_CONE3 = 135;
 const double COURSE_CONE1 = atan2((CONE1_LNG-INICIO_LNG),(CONE1_LAT - INICIO_LAT));   // ângulos de trajetória iniciais para cada cone
@@ -311,11 +329,22 @@ byte message[VW_MAX_MESSAGE_LEN];    // Armazena as mensagens recebidas
 byte msgLength = VW_MAX_MESSAGE_LEN; // Armazena o tamanho das mensagens
 char comando ='L';
 
+// Variáveis do US
+/************************************************************************************************************************************************************************************************/
+Ultrasonic us_frente_esquerda(TRIGGER_PIN6, ECHO_PIN6); 
+Ultrasonic us_frente_direita(TRIGGER_PIN5, ECHO_PIN5);
+Ultrasonic us_esquerda_frente(TRIGGER_PIN3, ECHO_PIN3);
+Ultrasonic us_esquerda_tras(TRIGGER_PIN1, ECHO_PIN1);
+Ultrasonic us_direita_frente(TRIGGER_PIN4, ECHO_PIN4);
+Ultrasonic us_direita_tras(TRIGGER_PIN2, ECHO_PIN2);
+float dist_obstaculo = 100;
+
 //Variáveis gerais
 /************************************************************************************************************************************************************************************************/
 int dandoRe = 0;
 long tempoRe;
 int start = 0;
+int ajuste = 0;
 
 // Funcoes da IMU
 /************************************************************************************************************************************************************************************************/
@@ -453,10 +482,10 @@ void calculate_IMU(){
     Serial.print(temperature);    Serial.print(";");
     Serial.print(pressure);       Serial.print(";");
     Serial.print(altitude);       Serial.println();
-    Serial.println(LIMITE0);
+    /*Serial.println(LIMITE0);
     Serial.println(LIMITE90);
     Serial.println(LIMITE180);
-    Serial.println(LIMITE270);
+    Serial.println(LIMITE270);*/
   }
 }
 
@@ -516,10 +545,13 @@ void displayInfo()
 }
 
 void calculate_GPS(){
-    while (Serial1.available() > 0)
-    if (gps.encode(Serial1.read()))
-      displayInfo();
 
+    while (Serial1.available() > 0)
+    if (gps.encode(Serial1.read())) {
+      Serial.println("OIOIOIOIOIOIOIOIOI");
+      displayInfo();
+      CalculoDistancia();
+    }
   if (millis() > 5000 && gps.charsProcessed() < 10)
   {
     Serial.println(F("No GPS detected: check wiring."));
@@ -528,11 +560,17 @@ void calculate_GPS(){
   }
 }
 
-void CalculoDistancia (double LAT_DEST, double LNG_DEST)
+void CalculoDistancia ()
 { 
   
   if (lat!= 0 && lng!=0){
-    DISTANCIA = gps.distanceBetween(lat, lng, LAT_DEST, LNG_DEST);
+    
+    if (!C1 &&  !C2 && !C3)
+      DISTANCIA = gps.distanceBetween(lat, lng, CONE1_LAT, CONE1_LNG);
+    else if (C1 &&  !C2 && !C3)
+      DISTANCIA = gps.distanceBetween(lat, lng, CONE2_LAT, CONE2_LNG);
+    else if (C1 &&  C2 && !C3)
+      DISTANCIA = gps.distanceBetween(lat, lng, CONE3_LAT, CONE3_LNG);
   
     Serial.print("Distance (m) to cone: ");
     Serial.println(DISTANCIA);
@@ -554,11 +592,11 @@ void CalculoDistancia (double LAT_DEST, double LNG_DEST)
 void calculate_LUZ() {
   
   //Faz uma média dos valores lidos pelos sensores
-  for (t=0; t<10; t++){
+  for (t=0; t<2; t++){
 
     valor1+=analogRead(A0);
   }
-  for (t=0; t<10; t++){
+  for (t=0; t<2; t++){
  
     valor2+=analogRead(A1);
   }
@@ -566,8 +604,8 @@ void calculate_LUZ() {
  
    // valor3+=analogRead(A2);
   //}
-  valor1=(valor1/10);
-  valor2=(valor2/10);
+  valor1=(valor1/2);
+  valor2=(valor2/2);
   //valor3=(valor3/10);
  
   //Verifica a leitura dos sensores
@@ -581,8 +619,6 @@ void calculate_LUZ() {
     }
     if(valor2 <limite2){
       Serial.println("To no marco 1");
-      //if(valor3<limite3){
-        Serial.println("To no marco 2");
         parar();
         if (!C1 && !C2 && !C3)
           C1 = true;
@@ -590,6 +626,7 @@ void calculate_LUZ() {
           C2 = true;
         else if (C1 && C2 && !C3)
           C3 = true;
+       ajuste = 0;
        AjustarPosicao();
        LigarSinal(); 
     }
@@ -689,22 +726,31 @@ void calculate_CONTROLE(){
     
     if(comando == Frente) {
       frente(potEsquerda, potDireita);  }
-      else if(comando == Tras) {
-        tras(potEsquerda, potDireita); }
-        else if(comando == Parar) {
-          parar();}                               
-          else if(comando == Esquerda) {
-            potEsquerda = 0;
-            potDireita = 200;
-            esquerda(potEsquerda, potDireita);}
-            else if(comando == Direita) {
-              potEsquerda = 200;
-              potDireita = 0;
-              direita(potEsquerda, potDireita);}
+    else if(comando == Tras) {
+      tras(potEsquerda, potDireita); }
+    else if(comando == Parar) {
+      parar();}                               
+    else if(comando == Esquerda) {
+      potEsquerda = 0;
+      potDireita = 200;
+      esquerda(potEsquerda, potDireita);}
+    else if(comando == Direita) {
+      potEsquerda = 200;
+      potDireita = 0;
+      direita(potEsquerda, potDireita);}
   }
 }
 
-//Sinal Luminoso
+// Funcoes Sensor Ultra-som
+/************************************************************************************************************************************************************************************************/
+void calculate_US (){
+  Serial.println("aqui");
+  Serial.println(us_esquerda_frente.Ranging(CM));
+  delay(200);  
+
+}
+
+// Funcoes Sinal Luminoso
 /************************************************************************************************************************************************************************************************/
 void initialize_SINAL(){
   
@@ -734,11 +780,11 @@ void calculate_START(){
   
     if (digitalRead(50) == LOW)
       start = 1;
-
+    Serial.println((digitalRead(50)));
 }
 
 
-// Funcoes de Cálculo do curso da trajetória
+// Funcoes de Cálculo do curso da trajetória, correcao trajetória
 /************************************************************************************************************************************************************************************************/
 
 // Alinha o robô de acordo com o ângulo definido pela IMU
@@ -753,36 +799,41 @@ void Alinhar (){
   digitalWrite(52, LOW);
 
   // resolver faixa de valores considerada certa com testes!!!
-
-  if (DIRECAO_CORRECAO > 7.5 && DIRECAO_CORRECAO < 10) {
-   // reduzir velocidade
-  // virar o robô no sentido horário
-      Serial.println("Corrigindo para direita");
-      direita(200, 180);
-  }  
-  else if (DIRECAO_CORRECAO < -7.5 && DIRECAO_CORRECAO > -10) {
-   // reduzir velocidade
-  // virar o robô no sentido anti - horário
-      Serial.println("Corrigindo para esquerda");
-      esquerda(180, 190);
-  }
-  else if (DIRECAO_CORRECAO > 10) {
-   // reduzir velocidade
-  // virar o robô no sentido horário
-      Serial.println("Corrigindo para direita");
-      direita(190, 0);
-  }  
-  else if (DIRECAO_CORRECAO < -10) {
-   // reduzir velocidade
-  // virar o robô no sentido anti - horário
-      Serial.println("Corrigindo para esquerda");
-      esquerda(0, 180);
-  }
-  else {
-  // nao corrige, continua reto
-      frente(210, 200);
-      digitalWrite(52, HIGH);
-  }  
+    if (DIRECAO_CORRECAO > 7.5 && DIRECAO_CORRECAO < 10) {
+     // reduzir velocidade
+    // virar o robô no sentido horário
+        Serial.println("Corrigindo para direita");
+        direita(200, 180);
+    }  
+    else if (DIRECAO_CORRECAO < -7.5 && DIRECAO_CORRECAO > -10) {
+     // reduzir velocidade
+    // virar o robô no sentido anti - horário
+        Serial.println("Corrigindo para esquerda");
+        esquerda(180, 190);
+    }
+    else if (DIRECAO_CORRECAO > 10) {
+     // reduzir velocidade
+    // virar o robô no sentido horário
+        Serial.println("Corrigindo para direita");
+        direita(190, 0);
+    }  
+    else if (DIRECAO_CORRECAO < -10) {
+     // reduzir velocidade
+    // virar o robô no sentido anti - horário
+        Serial.println("Corrigindo para esquerda");
+        esquerda(0, 180);
+    }
+    else if (ajuste == 0){
+    // nao corrige, continua reto
+        frente(220, 210);
+        digitalWrite(52, HIGH);
+        
+    }else if (ajuste == 1){
+    // nao corrige, continua reto
+        frente(200, 190);
+        digitalWrite(52, HIGH);
+    }
+      
 }
 
 void CalculoDirecao (){
@@ -792,9 +843,9 @@ void CalculoDirecao (){
   if (!C1 && !C2 && !C3) {
         
     // verificando se o robô da seguindo o curso do gps;
-    COURSE_ATUAL = atan2((CONE1_LNG-lng),(CONE1_LAT - lat));  
+    COURSE_ATUAL = atan2((CONE1_LNG-lng),(CONE1_LAT - lat)); 
     DELTA_COURSE = COURSE_ATUAL - COURSE_CONE1;
-    
+    DELTA_COURSE = TO_DEG(DELTA_COURSE);
     // define a orientação da IMU corrigida do robô a partir da orientação do gps
     IMU_CORRIGIDA = DIRECAO_IMU_CONE1 + DELTA_COURSE;
     
@@ -805,7 +856,7 @@ void CalculoDirecao (){
     // verificando se o robô da seguindo o curso do gps;
     COURSE_ATUAL = atan2((CONE2_LNG-lng),(CONE2_LAT - lat));  
     DELTA_COURSE = COURSE_ATUAL - COURSE_CONE2;
-  
+    DELTA_COURSE = TO_DEG(DELTA_COURSE);
     // define a orientação da IMU corrigida do robô a partir da orientação do gps
     IMU_CORRIGIDA = DIRECAO_IMU_CONE2 + DELTA_COURSE;
        
@@ -816,12 +867,16 @@ void CalculoDirecao (){
     // verificando se o robô da seguindo o curso do gps;
     COURSE_ATUAL = atan2((CONE3_LNG-lng),(CONE3_LAT - lat));  
     DELTA_COURSE = COURSE_ATUAL - COURSE_CONE3;
-  
+    DELTA_COURSE = TO_DEG(DELTA_COURSE);
     // define a orientação da IMU corrigida do robô a partir da orientação do gps
     IMU_CORRIGIDA = DIRECAO_IMU_CONE3 + DELTA_COURSE;   
   }  
-
-  IMU_CORRIGIDA = ArrumarAngulo(IMU_CORRIGIDA);       
+  Serial.println("DELTA COURSE");
+  Serial.println(DELTA_COURSE);
+  IMU_CORRIGIDA = ArrumarAngulo(IMU_CORRIGIDA);
+  Serial.println("IMU CORRIGIDA");
+  Serial.println(IMU_CORRIGIDA);
+    
 }
 
 double ArrumarAngulo (double Angulo) {
@@ -838,11 +893,11 @@ double ArrumarAngulo (double Angulo) {
 void AjustarPosicao (){
 
   // Arrumar em uma posicao para ir pro proximo cone
+  // inicialmente para e da uma ré
   
-  // inicialmente da uma ré
-  
+  parar();
   tras (200, 200);
-  //delay(1000);
+  delay(1000);
   parar();
   // Arrumar para ir pro cone 2
   if (C1 && !C2 && !C3){
@@ -855,6 +910,23 @@ void AjustarPosicao (){
   Alinhar();
 }
 
+void AjusteFino () {
+  if (DISTANCIA < 3){
+    ajuste = 1;  
+  }
+}
+
+void DetectarObstaculo () {
+
+  if (C1 && C2 && !C3){
+    if (DISTANCIA < 10){
+      ajuste = 1;
+      
+    
+    }
+ 
+  } 
+}
 // Main setup e Main Loop
 /************************************************************************************************************************************************************************************************/
 
@@ -871,6 +943,7 @@ void setup()
 }
 
 void loop(){
+  
 
   calculate_CONTROLE();
   calculate_START();
@@ -878,12 +951,15 @@ void loop(){
     calculate_IMU();
     calculate_GPS();
     calculate_LUZ();
-    //DetectarCone(); Separar a deteccao do cone pra outra coisa
+    //DetectarCone(); Separar a deteccao do cone pra outra funcao
     if (lat!=0 && lng!=0)
        CalculoDirecao();
+    AjusteFino();          // Robô vai mais devagar proximo ao cone
     Alinhar();
-    //AjusteFino(); Fazer a funcao do ajuste fino
     //DetectarObstaculo(); Fazer a funcao de detectar obstaculo
+      
   }
+  //Serial.println("loop");
+  //calculate_US();
   
 }
