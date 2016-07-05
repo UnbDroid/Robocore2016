@@ -548,7 +548,6 @@ void calculate_GPS(){
 
     while (Serial1.available() > 0)
     if (gps.encode(Serial1.read())) {
-      Serial.println("OIOIOIOIOIOIOIOIOI");
       displayInfo();
       CalculoDistancia();
     }
@@ -619,16 +618,23 @@ void calculate_LUZ() {
     }
     if(valor2 <limite2){
       Serial.println("To no marco 1");
-        parar();
+        frente(210, 200); //vai um pouco pra frente
+        delay(100);
+        parar();          
+        
         if (!C1 && !C2 && !C3)
           C1 = true;
         else if (C1 && !C2 && !C3)
           C2 = true;
-        else if (C1 && C2 && !C3)
+        else if (C1 && C2 && !C3){
           C3 = true;
+          while (true) {
+            parar();
+          }
+       }
+       LigarSinal();
        ajuste = 0;
-       AjustarPosicao();
-       LigarSinal(); 
+       AjustarPosicao(); 
     }
   }
   valor1=0;
@@ -684,7 +690,7 @@ void direita(int potEsquerda, int potDireita){
 }
 
 void direita_total(int potEsquerda, int potDireita){
-
+  Serial.println("To virando TODO pra direita!!!");  
   analogWrite(velEsquerda, potEsquerda);
   analogWrite(velDireita, potDireita);
   digitalWrite(IN1_E, HIGH);
@@ -702,7 +708,7 @@ void esquerda(int potEsquerda, int potDireita){
 }
 
 void esquerda_total(int potEsquerda, int potDireita){
-
+  Serial.println("To virando TODO pra esquerda!!!");
   analogWrite(velEsquerda, potEsquerda);
   analogWrite(velDireita, potDireita);
   digitalWrite(IN1_E, LOW);
