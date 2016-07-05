@@ -683,11 +683,35 @@ void direita(int potEsquerda, int potDireita){
 
 }
 
+void direita_total(int potEsquerda, int potDireita){
+
+  analogWrite(velEsquerda, potEsquerda);
+  analogWrite(velDireita, potDireita);
+  digitalWrite(IN1_E, HIGH);
+  digitalWrite(IN2_E, LOW); 
+  digitalWrite(IN1_D, LOW);
+  digitalWrite(IN2_D, HIGH);
+  
+
+}
+
 void esquerda(int potEsquerda, int potDireita){
   Serial.println("To virando pra esquerda!!!");
   frente (potEsquerda, potDireita);
 
 }
+
+void esquerda_total(int potEsquerda, int potDireita){
+
+  analogWrite(velEsquerda, potEsquerda);
+  analogWrite(velDireita, potDireita);
+  digitalWrite(IN1_E, LOW);
+  digitalWrite(IN2_E, HIGH);
+  digitalWrite(IN1_D, HIGH);
+  digitalWrite(IN2_D, LOW); 
+
+}
+
 
 void parar () {
 
@@ -725,19 +749,28 @@ void calculate_CONTROLE(){
        }
     
     if(comando == Frente) {
-      frente(potEsquerda, potDireita);  }
+      frente(potEsquerda, potDireita);  
+    }
     else if(comando == Tras) {
-      tras(potEsquerda, potDireita); }
+      tras(potEsquerda, potDireita); 
+    }
     else if(comando == Parar) {
-      parar();}                               
+      parar();
+    }                               
     else if(comando == Esquerda) {
-      potEsquerda = 0;
+     /* potEsquerda = 0;
       potDireita = 200;
-      esquerda(potEsquerda, potDireita);}
+      esquerda(potEsquerda, potDireita);
+    */
+      esquerda_total(210, 200);
+    }
     else if(comando == Direita) {
-      potEsquerda = 200;
+      /*potEsquerda = 200;
       potDireita = 0;
-      direita(potEsquerda, potDireita);}
+      direita(potEsquerda, potDireita);
+    */
+      direita_total(210, 200);
+    }
   }
 }
 
@@ -799,39 +832,71 @@ void Alinhar (){
   digitalWrite(52, LOW);
 
   // resolver faixa de valores considerada certa com testes!!!
-    if (DIRECAO_CORRECAO > 7.5 && DIRECAO_CORRECAO < 10) {
-     // reduzir velocidade
-    // virar o robô no sentido horário
-        Serial.println("Corrigindo para direita");
-        direita(200, 180);
-    }  
-    else if (DIRECAO_CORRECAO < -7.5 && DIRECAO_CORRECAO > -10) {
-     // reduzir velocidade
-    // virar o robô no sentido anti - horário
-        Serial.println("Corrigindo para esquerda");
-        esquerda(180, 190);
+    if (ajuste == 0){
+        if (DIRECAO_CORRECAO > 5 && DIRECAO_CORRECAO < 10) {
+         // reduzir velocidade
+        // virar o robô no sentido horário
+            Serial.println("Corrigindo para direita");
+            direita(220, 200);
+        }  
+        else if (DIRECAO_CORRECAO < -5 && DIRECAO_CORRECAO > -10) {
+         // reduzir velocidade
+        // virar o robô no sentido anti - horário
+            Serial.println("Corrigindo para esquerda");
+            esquerda(210, 220);
+        }
+        else if (DIRECAO_CORRECAO > 10) {
+         // reduzir velocidade
+        // virar o robô no sentido horário
+            Serial.println("Corrigindo para direita");
+            direita(210, 0);
+        }  
+        else if (DIRECAO_CORRECAO < -10) {
+         // reduzir velocidade
+        // virar o robô no sentido anti - horário
+            Serial.println("Corrigindo para esquerda");
+            esquerda(0, 200);
+        }
+        else {
+        // nao corrige, continua reto
+            frente(230, 220);
+            digitalWrite(52, HIGH);
+            
+        }
     }
-    else if (DIRECAO_CORRECAO > 10) {
-     // reduzir velocidade
-    // virar o robô no sentido horário
-        Serial.println("Corrigindo para direita");
-        direita(190, 0);
-    }  
-    else if (DIRECAO_CORRECAO < -10) {
-     // reduzir velocidade
-    // virar o robô no sentido anti - horário
-        Serial.println("Corrigindo para esquerda");
-        esquerda(0, 180);
-    }
-    else if (ajuste == 0){
-    // nao corrige, continua reto
-        frente(220, 210);
-        digitalWrite(52, HIGH);
+    else if (ajuste == 1){
         
-    }else if (ajuste == 1){
-    // nao corrige, continua reto
-        frente(200, 190);
-        digitalWrite(52, HIGH);
+        if (DIRECAO_CORRECAO > 5 && DIRECAO_CORRECAO < 10) {
+         // reduzir velocidade
+        // virar o robô no sentido horário
+            Serial.println("Corrigindo para direita");
+            direita_total(210, 200);
+        }  
+        else if (DIRECAO_CORRECAO < -5 && DIRECAO_CORRECAO > -10) {
+         // reduzir velocidade
+        // virar o robô no sentido anti - horário
+            Serial.println("Corrigindo para esquerda");
+            esquerda_total(210, 200);
+        }
+        /*
+        else if (DIRECAO_CORRECAO > 10) {
+         // reduzir velocidade
+        // virar o robô no sentido horário
+            Serial.println("Corrigindo para direita");
+            direita(190, 0);
+        }  
+        else if (DIRECAO_CORRECAO < -10) {
+         // reduzir velocidade
+        // virar o robô no sentido anti - horário
+            Serial.println("Corrigindo para esquerda");
+            esquerda(0, 180);
+        }
+        */ 
+        else { 
+        // nao corrige, continua reto
+          frente(210, 200);
+          digitalWrite(52, HIGH);
+       }
     }
       
 }
@@ -911,11 +976,11 @@ void AjustarPosicao (){
 }
 
 void AjusteFino () {
-  if (DISTANCIA < 3){
+  if (DISTANCIA < 5){
     ajuste = 1;  
   }
 }
-
+/*
 void DetectarObstaculo () {
 
   if (C1 && C2 && !C3){
@@ -926,7 +991,8 @@ void DetectarObstaculo () {
     }
  
   } 
-}
+}*/
+
 // Main setup e Main Loop
 /************************************************************************************************************************************************************************************************/
 
