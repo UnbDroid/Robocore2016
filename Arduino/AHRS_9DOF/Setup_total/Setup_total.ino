@@ -2,10 +2,10 @@
 Configurando bussola*/
 
 
-const float LIMITEREAL0 = 64.7;  
-const float LIMITEREAL90 = 128.4;
-const float LIMITENEGATIVOREAL90 = -84.3;
-const float LIMITEREAL180 = -176; // Deve ser um valor um pouco maior que -180 da bussóla nao normalizada (Cerca de -178~-172)
+const float LIMITEREAL0 = 70.8; 
+const float LIMITEREAL90 = 126.4;
+const float LIMITENEGATIVOREAL90 = -45.5;
+const float LIMITEREAL180 = -173.9;    //-176; // Deve ser um valor um pouco maior que -180 da bussóla nao normalizada (Cerca de -178~-172)
 
 // Para poder usar o código feito pelo Arthur
 const float LIMITE0 = LIMITEREAL180 + 180;
@@ -89,7 +89,7 @@ const float LIMITE270 = LIMITEREAL90 + 180;
 // Sensor data output interval in milliseconds
 // This may not work, if faster than 20ms (=50Hz)
 // Code is tuned for 20ms, so better leave it like that
-#define OUTPUT_DATA_INTERVAL 200  // in milliseconds
+#define OUTPUT_DATA_INTERVAL 200// in milliseconds
 
 // SENSOR CALIBRATION
 /*****************************************************************/
@@ -284,15 +284,15 @@ float angulo_normalizado;
 double lat,lng;
 float speed;
 boolean C1 = false, C2 = false, C3 = false;
-const double CONE1_LAT =  -15.76315307;  // latitudes e longitudes dos cones  -15.76315307,-47.85836029
-const double CONE1_LNG =  -47.85836029;
+const double CONE1_LAT =  -23.64732742;  // latitudes e longitudes dos cones  -23.64732742,-46.57261276
+const double CONE1_LNG =  -46.57261276;
 const double CONE2_LAT =  -15.762824;   // -15.762824,-47.859519
 const double CONE2_LNG =  -47.859519;
 const double CONE3_LAT =  -15.765286;
 const double CONE3_LNG =  -47.871986;
-const double INICIO_LAT = -15.76340961;      // latitude e longitude do ponto inicial   -15.76340961,-47.85813140
-const double INICIO_LNG = -47.85813140;
-const double DIRECAO_IMU_CONE1 = -127;   // angulo da IMU para os cone 
+const double INICIO_LAT = -23.64728546;      // latitude e longitude do ponto inicial    -23.64728546,-46.57264709
+const double INICIO_LNG = -46.57264709;
+const double DIRECAO_IMU_CONE1 = 96.6;   // angulo da IMU para os cone 
 const double DIRECAO_IMU_CONE2 = 176.5;
 const double DIRECAO_IMU_CONE3 = -96;
 const double COURSE_CONE1 = atan2((CONE1_LNG-INICIO_LNG),(CONE1_LAT - INICIO_LAT));   // ângulos de trajetória iniciais para cada cone
@@ -314,9 +314,9 @@ TinyGPSPlus gps;
 
 int i, t, valor1, valor2, valor3;
 int soma;
-int limite1=400;
-int limite2=400;
-int limite3=400;
+int limite1=250;
+int limite2=250;
+int limite3=250;
 int cont=0;
 
 // Variáveis do DRIVER
@@ -339,7 +339,7 @@ Ultrasonic us_direita_frente(TRIGGER_PIN4, ECHO_PIN4);
 Ultrasonic us_direita_tras(TRIGGER_PIN2, ECHO_PIN2);
 float dist_obstaculo = 100;
 
-//Variáveis gerais
+//Variáveis globais
 /************************************************************************************************************************************************************************************************/
 int dandoRe = 0;
 long tempoRe;
@@ -347,6 +347,8 @@ int start = 0;
 int ajuste = 0;
 int contAjusteFino = 0;
 long latMed=0,lngMed=0;
+double angulo_ajuste;
+int ajustar_esquerda, ajustar_direita;
 // Funcoes da IMU
 /************************************************************************************************************************************************************************************************/
 
@@ -548,6 +550,7 @@ void calculate_GPS(){
 
     while (Serial1.available() > 0)
     if (gps.encode(Serial1.read())) {
+      Serial.println("AHAHAHAHAHAHAHHAHAHAA");
       displayInfo();
       CalculoDistancia();
     }
@@ -619,7 +622,7 @@ void calculate_LUZ() {
     if(valor1 <limite1){
      Serial.println("To subindo no marco");
     }
-    //if(valor2 <limite2){
+    if(valor2 <limite2){
       Serial.println("To no marco 1");
         frente(210, 200); //vai um pouco pra frente
         delay(100);
@@ -639,9 +642,8 @@ void calculate_LUZ() {
           }
        }
        LigarSinal();
-       ajuste = 0;
        AjustarPosicao(); 
-    //}
+    }
   }
   valor1=0;
   valor2=0;
@@ -668,23 +670,12 @@ void initialize_DRIVER(){
 
 void frente (int potEsquerda, int potDireita) {
   Serial.println("To indo pra frente!!!");
-  analogWrite(velEsquerda, potEsquerda);
-  analogWrite(velDireita, potDireita);
-  digitalWrite(IN1_E, HIGH);
-  digitalWrite(IN2_E, LOW); 
-  digitalWrite(IN1_D, HIGH);
-  digitalWrite(IN2_D, LOW); 
+
 
 }
 
 void tras (int potEsquerda, int potDireita) {
   Serial.println("To dando re!!!");
-  analogWrite(velEsquerda, potEsquerda);
-  analogWrite(velDireita, potDireita);
-  digitalWrite(IN1_E, LOW);
-  digitalWrite(IN2_E, HIGH);  
-  digitalWrite(IN1_D, LOW);
-  digitalWrite(IN2_D, HIGH);
 
 }
 
@@ -696,13 +687,7 @@ void direita(int potEsquerda, int potDireita){
 }
 
 void direita_total(int potEsquerda, int potDireita){
-  Serial.println("To virando TODO pra direita!!!");  
-  analogWrite(velEsquerda, potEsquerda);
-  analogWrite(velDireita, potDireita);
-  digitalWrite(IN1_E, HIGH);
-  digitalWrite(IN2_E, LOW); 
-  digitalWrite(IN1_D, LOW);
-  digitalWrite(IN2_D, HIGH);
+  Serial.println("To virando TODO pra direita!!!"); 
   
 
 }
@@ -715,22 +700,11 @@ void esquerda(int potEsquerda, int potDireita){
 
 void esquerda_total(int potEsquerda, int potDireita){
   Serial.println("To virando TODO pra esquerda!!!");
-  analogWrite(velEsquerda, potEsquerda);
-  analogWrite(velDireita, potDireita);
-  digitalWrite(IN1_E, LOW);
-  digitalWrite(IN2_E, HIGH);
-  digitalWrite(IN1_D, HIGH);
-  digitalWrite(IN2_D, LOW); 
-
 }
 
 
 void parar () {
 
-  digitalWrite(IN1_E, LOW);
-  digitalWrite(IN2_E, LOW);  
-  digitalWrite(IN1_D, LOW);
-  digitalWrite(IN2_D, LOW); 
 
 }
 // Funcoes Controle
@@ -746,8 +720,8 @@ void initialize_CONTROLE(){
 
 void calculate_CONTROLE(){    
   
-  int potEsquerda = 200;
-  int potDireita = 200;
+  int potEsquerda = 150;
+  int potDireita = 150;
  
   uint8_t message[VW_MAX_MESSAGE_LEN];    
   uint8_t msgLength = VW_MAX_MESSAGE_LEN; 
@@ -770,18 +744,18 @@ void calculate_CONTROLE(){
       parar();
     }                               
     else if(comando == Esquerda) {
-     /* potEsquerda = 0;
-      potDireita = 200;
+      potEsquerda = 0;
+      potDireita = 150;
       esquerda(potEsquerda, potDireita);
-    */
-      esquerda_total(210, 200);
+    
+      //esquerda_total(150, 140);
     }
     else if(comando == Direita) {
-      /*potEsquerda = 200;
+      potEsquerda = 150;
       potDireita = 0;
       direita(potEsquerda, potDireita);
-    */
-      direita_total(210, 200);
+    
+      //direita_total(150, 140);
     }
   }
 }
@@ -835,101 +809,44 @@ void calculate_START(){
 // Alinha o robô de acordo com o ângulo definido pela IMU
 void Alinhar (){
   
-  IMU_CORRIGIDA = DIRECAO_IMU_CONE1; // Para andar somente se guiando pelo angulo inicial
-  
   double DIRECAO_CORRECAO = IMU_CORRIGIDA - angulo_normalizado;
   
   DIRECAO_CORRECAO = ArrumarAngulo(DIRECAO_CORRECAO);
   Serial.println("DIRECAO_CORRECAO");
   Serial.println(DIRECAO_CORRECAO);
 
-  digitalWrite(52, LOW);
+  //digitalWrite(52, LOW);
 
   // resolver faixa de valores considerada certa com testes!!!
 
-        if (DIRECAO_CORRECAO > 2 && DIRECAO_CORRECAO < 8) {
-         // reduzir velocidade
-        // virar o robô no sentido horário
-            Serial.println("Corrigindo para direita");
-            direita(220, 200);
-        }  
-        else if (DIRECAO_CORRECAO < -2 && DIRECAO_CORRECAO > -8) {
-         // reduzir velocidade
-        // virar o robô no sentido anti - horário
-            Serial.println("Corrigindo para esquerda");
-            esquerda(210, 220);
-        }
-        else if (DIRECAO_CORRECAO > 8) {
-         // reduzir velocidade
-        // virar o robô no sentido horário
-            Serial.println("Corrigindo para direita");
-            direita(210, 0);
-        }  
-        else if (DIRECAO_CORRECAO < -8) {
-         // reduzir velocidade
-        // virar o robô no sentido anti - horário
-            Serial.println("Corrigindo para esquerda");
-            esquerda(0, 200);
-        }
-        else if (ajuste == 0){
-            frente(230, 220);
-            digitalWrite(52, HIGH);
-            
-       }
-       else if (ajuste == 1){
-        
-         
         if (DIRECAO_CORRECAO > 5 && DIRECAO_CORRECAO < 10) {
          // reduzir velocidade
         // virar o robô no sentido horário
             Serial.println("Corrigindo para direita");
-            direita_total(230, 220);
+            direita(200, 190);
         }  
         else if (DIRECAO_CORRECAO < -5 && DIRECAO_CORRECAO > -10) {
          // reduzir velocidade
         // virar o robô no sentido anti - horário
             Serial.println("Corrigindo para esquerda");
-            esquerda_total(230, 220);
+            esquerda(200, 190);
         }
-        
         else if (DIRECAO_CORRECAO > 10) {
          // reduzir velocidade
         // virar o robô no sentido horário
             Serial.println("Corrigindo para direita");
-            direita(190, 0);
+            direita(200, 0);
         }  
         else if (DIRECAO_CORRECAO < -10) {
          // reduzir velocidade
         // virar o robô no sentido anti - horário
             Serial.println("Corrigindo para esquerda");
-            esquerda(0, 180);
+            esquerda(0, 190);
         }
-        
-         
-        // nao corrige, continua reto
-          frente(210, 200);
-          //digitalWrite(52, HIGH);
-       
-    }else if (ajuste == 2){
-       if (DIRECAO_CORRECAO > 5) {
-         // Virar forte no mesmo lugar
-        // virar o robô no sentido horário
-            Serial.println("Corrigindo para direita no ajuste");
-            direita_total(255, 255);
-        }  
-        else if (DIRECAO_CORRECAO < -5) {
-         // reduzir velocidade
-        // virar o robô no sentido anti - horário
-            Serial.println("Corrigindo para esquerda no ajuste");
-            esquerda_total(255, 255);
-        }
-        else{
-          //Ir para frente
-          Serial.println("Indo para a frente no ajuste");
-          frente(240,230);
-        }
-      
-    }
+        else {
+            frente(200,190);
+            digitalWrite(52, HIGH);
+       }
       
 }
 
@@ -943,8 +860,10 @@ void CalculoDirecao (){
     COURSE_ATUAL = atan2((CONE1_LNG-lng),(CONE1_LAT - lat)); 
     DELTA_COURSE = COURSE_ATUAL - COURSE_CONE1;
     DELTA_COURSE = TO_DEG(DELTA_COURSE);
-    // define a orientação da IMU corrigida do robô a partir da orientação do gps
+    DELTA_COURSE = ArrumarAngulo(DELTA_COURSE);   // define a orientação da IMU corrigida do robô a partir da orientação do gps
     IMU_CORRIGIDA = DIRECAO_IMU_CONE1 + DELTA_COURSE;
+    Serial.println("A outra IMU Corrigida");
+    Serial.println(ArrumarAngulo(DIRECAO_IMU_CONE1 - DELTA_COURSE));
     
   }  
   // Ja encontrou o cone1
@@ -976,47 +895,20 @@ void CalculoDirecao (){
     
 }
 
-void CalculoDirecaoAjusteFino (){
+void CalculoDirecaoAjusteFino (int esq, int dir){
+ 
+  if (esq){
+      IMU_CORRIGIDA = angulo_ajuste - 45;
+  }
+  else if (dir){
   
-  //MUDAR - VERIFICAR SE TEM QUE INVERTER O DELTA_COURSE
-  //Nao achou nenhum dos cones ainda  
-  if (!C1 && !C2 && !C3) {
-        
-    // verificando se o robô da seguindo o curso do gps;
-    COURSE_ATUAL = atan2((CONE1_LNG-lng),(CONE1_LAT - lat)); 
-    DELTA_COURSE = COURSE_ATUAL - COURSE_CONE1;
-    DELTA_COURSE = TO_DEG(DELTA_COURSE);
-    // define a orientação da IMU corrigida do robô a partir da orientação do gps
-    IMU_CORRIGIDA = DIRECAO_IMU_CONE1 + DELTA_COURSE;
-    
-  }  
-  // Ja encontrou o cone1
-  if (C1 && !C2 && !C3) {
-        
-    // verificando se o robô da seguindo o curso do gps;
-    COURSE_ATUAL = atan2((CONE2_LNG-lngMed/5),(CONE2_LAT - latMed/5));  
-    DELTA_COURSE = COURSE_ATUAL - COURSE_CONE2;
-    DELTA_COURSE = TO_DEG(DELTA_COURSE);
-    // define a orientação da IMU corrigida do robô a partir da orientação do gps
-    IMU_CORRIGIDA = DIRECAO_IMU_CONE2 + DELTA_COURSE;
-       
-  }  
-  // Ja achou cones 1 e 2
-   if (C1 && C2 && !C3) {
-        
-    // verificando se o robô da seguindo o curso do gps;
-    COURSE_ATUAL = atan2((CONE3_LNG-lngMed/5),(CONE3_LAT - latMed/5));  
-    DELTA_COURSE = COURSE_ATUAL - COURSE_CONE3;
-    DELTA_COURSE = TO_DEG(DELTA_COURSE);
-    // define a orientação da IMU corrigida do robô a partir da orientação do gps
-    IMU_CORRIGIDA = DIRECAO_IMU_CONE3 + DELTA_COURSE;   
-  }  
-  Serial.println("DELTA COURSE  NO AJUSTE FINO");
-  Serial.println(DELTA_COURSE);
+      IMU_CORRIGIDA = angulo_ajuste + 45; 
+  }
+  
   IMU_CORRIGIDA = ArrumarAngulo(IMU_CORRIGIDA);
-  Serial.println("IMU CORRIGIDA NO AJUSTE FINO");
+  Serial.println("IMU CORRIGIDA AJUSTE");
   Serial.println(IMU_CORRIGIDA);
-    
+ 
 }
 
 double ArrumarAngulo (double Angulo) {
@@ -1036,7 +928,7 @@ void AjustarPosicao (){
   // inicialmente para e da uma ré
   
   parar();
-  tras (200, 200);
+  tras (150, 150);
   delay(1000);
   parar();
   // Arrumar para ir pro cone 2
@@ -1052,18 +944,23 @@ void AjustarPosicao (){
 
 
 void AjusteFino () {
-  parar();
-  Serial.println("Aqui");
-  Serial.println(contAjusteFino);
-  if(contAjusteFino < 5 && lat!=0 && lng!=0){
-    contAjusteFino++;
-    latMed += lat;
-    lngMed += lng;
-  }else if(contAjusteFino){
-    ajuste = 2;
-    CalculoDirecaoAjusteFino();
-    Alinhar();
-  }
+  CalculoDirecaoAjusteFino (ajustar_esquerda,ajustar_direita); // angulo_ajuste;
+  if (ajustar_esquerda && ArrumarAngulo(angulo_ajuste - angulo_normalizado) < 0) {
+    ajustar_esquerda = 1;
+  }else{
+    ajustar_esquerda = 0;
+    ajustar_direita = 1; 
+  }  
+  if (ajustar_direita && ArrumarAngulo(angulo_ajuste - angulo_normalizado) > 0) {
+    ajustar_direita = 1;
+  }else{
+    ajustar_direita = 0;
+    ajustar_esquerda = 1; 
+  }  
+  
+  Alinhar();
+
+  
 }
 /*
 void DetectarObstaculo () {
@@ -1100,21 +997,24 @@ void loop(){
   calculate_START();
   if (comando == 'L' && start == 1){
     calculate_IMU();
-    //calculate_GPS();
+    calculate_GPS();
     calculate_LUZ();
     //DetectarCone(); Separar a deteccao do cone pra outra funcao ?
-    /*if(DISTANCIA>5){
+    //if(DISTANCIA>8){
       if (lat!=0 && lng!=0){
         digitalWrite(52, LOW); //Desliga o Sinal Luminoso 
         CalculoDirecao();
+        angulo_ajuste = IMU_CORRIGIDA;
+        ajustar_esquerda = 1;
+        ajustar_direita = 0;
       }
       Alinhar();
-    }else if(DISTANCIA < 5){
-      digitalWrite(52, HIGH); 
-      AjusteFino();          //Liga o Sinal Luminoso
-    }*/
-    //DetectarObstaculo(); Fazer a funcao de detectar obstaculo
-    Alinhar();
+    //}else if(DISTANCIA < 8){
+    //  digitalWrite(52, HIGH); 
+    //  AjusteFino();          //Liga o Sinal Luminoso
+    //}
+    //DetectarObstaculo();  // Fazer a funcao de detectar obstaculo
+    //Alinhar();
   }
   //calculate_US();
   
